@@ -1,15 +1,6 @@
-===============================
-uptimerobot
-===============================
+# uptimerobot
 
-
-.. image:: https://img.shields.io/pypi/v/uptimerobot.svg
-        :target: https://pypi.python.org/pypi/uptimerobot
-
-
-.. image:: https://readthedocs.org/projects/uptimerobot/badge/?version=latest
-        :target: https://uptimerobot.readthedocs.io/en/latest/?badge=latest
-        :alt: Documentation Status
+![Coverage](https://img.shields.io/badge/coverage-100-red.svg)
 
 
 uptimerobot python api

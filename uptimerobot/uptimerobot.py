@@ -62,9 +62,14 @@ class UpTimeRobot(object):
             params['monitors'] = monitor_id
         return params
 
+    def _get_session(self):
+        if not hasattr(self, '_session'):
+            self._session = requests.Session()
+        return self._session
+
     def _get_response(self, monitor_id):
         params = self._get_params(monitor_id)
-        response = requests.get(
+        response = self._get_session().get(
             '{}/{}'.format(self._url, self._methods.get('get')),
             params=params,
         )
@@ -73,16 +78,14 @@ class UpTimeRobot(object):
     def _list_monitors(self):
         url = '{}/{}'.format(self._url, self._methods.get('get'))
         params = self._get_params()
-        response = requests.get(
+        response = self._get_session().get(
             url,
             params=params,
         )
         data = self._clean_response_data(response.text)
         data = StringIO(data)
-        monitors = list()
         for monitor in ijson.items(data, 'monitors.monitor.item'):
-            monitors.append(monitor)
-        return monitors
+            yield monitor
 
     def _get_monitor_id(self, monitor):
         monitor_id = None
@@ -135,7 +138,13 @@ class UpTimeRobot(object):
         else:
             self._save_graph(figure, friendly_name)
 
-    def monitors(self):
+    def monitors(self, name=None):
         """ List available monitors """
+        identifiers = ('friendlyname', 'id', 'url')
         for monitor in self._list_monitors():
-            yield monitor
+            if name is not None:
+                for identifier in identifiers:
+                    if monitor.get(identifier) == name:
+                        yield monitor
+            else:
+                yield monitor

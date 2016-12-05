@@ -1,40 +1,27 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
-"""
-test_uptimerobot
-----------------------------------
-
-Tests for `uptimerobot` module.
-"""
 
 import pytest
 
-from contextlib import contextmanager
-from click.testing import CliRunner
 
-from uptimerobot import uptimerobot
-from uptimerobot import cli
+@pytest.mark.usefixtures('list_monitors')
+def test_monitors(uptimerobot):
+    monitors = [m.get('friendlyname') for m in uptimerobot.monitors()]
+    for index in range(len(monitors)):
+        assert 'www.example{}.com'.format(index) in monitors
+        print monitors[index]
 
 
-class TestUptimerobot(object):
+@pytest.mark.usefixtures('list_monitors')
+@pytest.mark.parametrize('key,value', [
+    ('friendlyname', 'www.example2.com'),
+    ('id', '59411727'),
+    ('url', 'http://www.example2.com'),
+])
+def test_monitor(uptimerobot, key, value):
+    for monitor in uptimerobot.monitors(name=key):
+        assert value == monitor.get(key)
 
-    @classmethod
-    def setup_class(cls):
-        pass
 
-    def test_something(self):
-        pass
-    def test_command_line_interface(self):
-        runner = CliRunner()
-        result = runner.invoke(cli.main)
-        assert result.exit_code == 0
-        assert 'uptimerobot.cli.main' in result.output
-        help_result = runner.invoke(cli.main, ['--help'])
-        assert help_result.exit_code == 0
-        assert '--help  Show this message and exit.' in help_result.output
-
-    @classmethod
-    def teardown_class(cls):
-        pass
-
+# @pytest.mark.usefixtures('http_monitor')
+# def test_graph(uptimerobot):
+#     uptimerobot.graph('www.example.com')
