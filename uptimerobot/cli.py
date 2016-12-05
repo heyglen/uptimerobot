@@ -27,8 +27,10 @@ def monitors(ctx, debug):
 
 @cli.command()
 @click.argument('monitor', nargs=1)
+@click.option('-o', '--output', help='File name to save graph to',
+              type=click.Path(exists=True), default=None)
 @click.option('-d', '--debug', is_flag=True, default=False)
 @click.pass_context
-def graph(ctx, monitor, debug):
+def graph(ctx, monitor, output, debug):
     uptimerobot = ctx.obj
-    uptimerobot.graph(monitor)
+    uptimerobot.graph(monitor, file_name=output)
