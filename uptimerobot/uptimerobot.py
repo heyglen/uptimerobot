@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 
-import base64
 import datetime
 import os
 import ijson
 import logging
+from collections import namedtuple
 from StringIO import StringIO
 
-import click
 import requests
 import pandas as pnd
 import matplotlib.pyplot as plt
@@ -18,34 +17,16 @@ plt.style.use('fivethirtyeight')
 
 logger = logging.getLogger(__name__)
 
+ApiMethod = namedtuple('ApiMethod', ['get'])
+api_method = ApiMethod(get='getMonitors')
+
 
 class UpTimeRobot(object):
     _url = 'https://api.uptimerobot.com'
-    _methods = {
-        'get': 'getMonitors',
-    }
-    _credentials = None
+    _methods = api_method
 
     def __init__(self, api_key=None):
         self._api_key = api_key or self._get_api_key()
-
-    def _get_api_key(self):
-        environment_variable = '{}_API_KEY'.format(self.__class__.__name__)
-        api_key = None
-        try:
-            api_key = os.environ.get(environment_variable)
-        except AttributeError:
-            logger.debug('Username not stored in environment variable {}.'.format(
-                environment_variable
-            ))
-        if api_key is None:
-            api_key = click.prompt(
-                '{} API Key'.format(self.app),
-                type=unicode,
-            )
-        else:
-            api_key = base64.b64decode(api_key).strip()
-        return api_key
 
     def _clean_response_data(self, data):
         return data.replace(u'jsonUptimeRobotApi(', u'').rstrip(u')')
@@ -62,16 +43,8 @@ class UpTimeRobot(object):
             params['monitors'] = monitor_id
         return params
 
-    def _get_response(self, monitor_id):
-        params = self._get_params(monitor_id)
-        response = requests.get(
-            '{}/{}'.format(self._url, self._methods.get('get')),
-            params=params,
-        )
-        return response
-
     def _list_monitors(self):
-        url = '{}/{}'.format(self._url, self._methods.get('get'))
+        url = '{}/{}'.format(self._url, self._methods.get)
         params = self._get_params()
         response = requests.get(
             url,
@@ -91,22 +64,34 @@ class UpTimeRobot(object):
             if monitor_object.get('friendlyname') == monitor or monitor_object.get('id') == monitor:
                 monitor_id = monitor_object.get('id')
                 friendly_name = monitor_object.get('friendlyname')
-                break
-        return monitor_id, friendly_name
+                return monitor_id, friendly_name
+        raise ValueError('Unknown monitor "{}"'.format(monitor))
 
-    def _get_series(self, monitor_id):
-        response = self._get_response(monitor_id)
+    def _get_series(self, monitor_ids):
+        if not isinstance(monitor_ids, list):
+            monitor_ids = [monitor_ids]
+        
+        monitor_ids = u'-'.join(monitor_ids)
+        response = requests.get(
+            '{}/{}'.format(self._url, self._methods.get),
+            params=self._get_params(monitor_ids),
+        )
         data = self._clean_response_data(response.text)
-        data = StringIO(data)
 
-        dates = list()
-        values = list()
-        for measure in ijson.items(data, 'monitors.monitor.item.responsetime.item'):
-            dates.append(measure.get('datetime'))
-            values.append(int(measure.get('value')))
+        df = pnd.read_json(data, typ='series', orient='columns')
 
-        index = pnd.to_datetime(dates, dayfirst=False)
-        return pnd.Series(values, index=index)
+        all_series = list()        
+        for monitor in df['monitors']['monitor']:
+            index = pnd.to_datetime(
+                [e['datetime'] for e in monitor['responsetime']],
+                dayfirst=False,
+            )
+            series = pnd.Series(
+                name=monitor['friendlyname'],
+                data=[int(e['value']) for e in monitor['responsetime']],
+                index=index
+            )
+            yield series
 
     @classmethod
     def _save_graph(cls, figure, friendly_name):
@@ -124,16 +109,19 @@ class UpTimeRobot(object):
         figure.show()
         plt.show()  # Wait for exit
 
-    def graph(self, monitor, file_name=None):
-        monitor_id, friendly_name = self._get_monitor_id(monitor)
-        series = self._get_series(monitor_id)
-        ax = series.plot()
-        ax.set_title('Response Time: {}'.format(friendly_name))
-        figure = ax.get_figure()
-        if file_name is None:
-            self._display_graph(figure)
-        else:
-            self._save_graph(figure, friendly_name)
+    def graph(self, monitors, file_name=None):
+        if not isinstance(monitors, tuple):
+            monitors = (monitors, )
+        monitors = [self._get_monitor_id(m)[0] for m in monitors]
+
+        for series in self._get_series(monitors):
+            ax = series.plot()
+            ax.set_title('Response Time: {}'.format(series.name))
+            figure = ax.get_figure()
+            if file_name is None:
+                self._display_graph(figure)
+            else:
+                self._save_graph(figure, series.name)
 
     def monitors(self):
         """ List available monitors """

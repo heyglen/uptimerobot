@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 from setuptools import setup, find_packages
@@ -15,6 +14,7 @@ requirements = [
     'ijson',
     'requests',
     'matplotlib',
+    'colorlog',
     # TODO: put package requirements here
 ]
 
