@@ -3,6 +3,7 @@
 import logging
 import pathlib
 
+from click.testing import CliRunner
 from mock import Mock
 import pytest
 
@@ -101,6 +102,11 @@ def list_monitors(monkeypatch, mock_response):
 @pytest.fixture
 def uptimerobot():
     return UpTimeRobot(api_key='dummy_key')
+
+
+@pytest.fixture(scope='module')
+def cli_runner():
+    return CliRunner()
 
 
 # def pytest_sessionfinish(session, exitstatus):

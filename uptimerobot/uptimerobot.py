@@ -30,7 +30,8 @@ class UpTimeRobot(object):
         self._api_key = api_key or self._get_api_key()
 
     def _get_api_key(self):
-        environment_variable = '{}_API_KEY'.format(self.__class__.__name__)
+        class_name = self.__class__.__name__
+        environment_variable = '{}_API_KEY'.format(class_name.upper())
         api_key = None
         try:
             api_key = os.environ.get(environment_variable)
@@ -40,7 +41,7 @@ class UpTimeRobot(object):
             ))
         if api_key is None:
             api_key = click.prompt(
-                '{} API Key'.format(self.app),
+                '{} API Key'.format(class_name.lower()),
                 type=unicode,
             )
         else:

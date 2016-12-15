@@ -8,7 +8,6 @@ def test_monitors(uptimerobot):
     monitors = [m.get('friendlyname') for m in uptimerobot.monitors()]
     for index in range(len(monitors)):
         assert 'www.example{}.com'.format(index) in monitors
-        print monitors[index]
 
 
 @pytest.mark.usefixtures('list_monitors')
@@ -22,6 +21,3 @@ def test_monitor(uptimerobot, key, value):
         assert value == monitor.get(key)
 
 
-# @pytest.mark.usefixtures('http_monitor')
-# def test_graph(uptimerobot):
-#     uptimerobot.graph('www.example.com')

@@ -35,7 +35,7 @@ setup(
                  'uptimerobot'},
     entry_points={
         'console_scripts': [
-            'uptimerobot=uptimerobot.cli:cli'
+            'uptimerobot=uptimerobot.cli:monitors'
         ]
     },
     include_package_data=True,
